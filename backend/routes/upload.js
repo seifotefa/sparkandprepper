@@ -2,8 +2,9 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const pdfParse = require('pdf-parse');
+const bucket = require('../firebase');
 const { sendToGemini } = require('../services/gemini');
+const PDFDocument = require('pdfkit');
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
@@ -16,30 +17,66 @@ router.post('/', upload.single('file'), async (req, res) => {
   }
 
   const filePath = req.file.path;
+
   try {
+    // Read the PDF content
     const dataBuffer = fs.readFileSync(filePath);
-    const pdfData = await pdfParse(dataBuffer);
-    const extractedText = pdfData.text;
-
     const mode = req.query.mode || 'study_guide';
-    const geminiResponse = await sendToGemini(extractedText, mode);
-
+    
+    // Send to Gemini
+    console.log('🧠 Sending to Gemini...', mode);
+    const geminiResponse = await sendToGemini(dataBuffer.toString(), mode);
     const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    const resultsDir = path.join(__dirname, '../public/results');
-    if (!fs.existsSync(resultsDir)) fs.mkdirSync(resultsDir, { recursive: true });
+    // Generate study guide PDF
+    const timestamp = Date.now();
+    const studyGuideFileName = `study_guide_${timestamp}.pdf`;
+    const studyGuidePath = path.join(__dirname, '../tmp', studyGuideFileName);
 
-    const filename = `${Date.now()}.txt`;
-    const outputPath = path.join(resultsDir, filename);
+    // Create PDF
+    const doc = new PDFDocument();
+    const writeStream = fs.createWriteStream(studyGuidePath);
+    doc.pipe(writeStream);
+    doc.fontSize(14).text(text, { align: 'left' });
+    doc.end();
 
-    fs.writeFileSync(outputPath, text, 'utf8');
+    // Wait for PDF to be written
+    await new Promise((resolve, reject) => {
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+
+    // Upload to Firebase with public access
+    const destination = `public/results/${studyGuideFileName}`;
+    await bucket.upload(studyGuidePath, {
+      destination: destination,
+      metadata: {
+        contentType: 'application/pdf',
+        cacheControl: 'public, max-age=31536000',
+      },
+      public: true
+    });
+
+    // Make the file publicly accessible
+    const file = bucket.file(destination);
+    await file.makePublic();
+
+    // Get the public URL
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${destination}`;
+    console.log('✅ Study guide available at:', publicUrl);
+
+    // Clean up local files
     fs.unlinkSync(filePath);
+    fs.unlinkSync(studyGuidePath);
 
-    console.log(`✅ Saved result at: ${outputPath}`);
-    res.json({ file: `results/${filename}` }); // Relative to 'public/'
+    return res.json({ 
+      file: `results/${studyGuideFileName}`,
+      url: publicUrl
+    });
+
   } catch (err) {
     console.error("🔥 Upload route error:", err);
-    res.status(500).json({ error: 'Error processing file' });
+    return res.status(500).json({ error: 'Error processing file' });
   }
 });
 

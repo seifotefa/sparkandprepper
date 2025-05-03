@@ -1,0 +1,61 @@
+Okay, here is a 5-question practice exam based on the provided lecture material, including multiple-choice and short answer questions, along with the correct answers.
+
+**CIS*2750 Practice Exam: List API and Libraries**
+
+**Instructions:** Answer all questions to the best of your ability.
+
+**1. (Multiple Choice - 2 points)**
+
+In C, when implementing a generic list ADT (Abstract Data Type) to store data of various types, what data type is typically used to store the data within the list nodes?
+
+(a) `int`
+(b) `char*`
+(c) `void*`
+(d) `struct`
+
+**2. (Multiple Choice - 2 points)**
+
+Which of the following is a characteristic of a dynamic (shared) library?
+
+(a) Its contents are copied into the executable during compilation.
+(b) It results in a larger executable file size.
+(c) It is linked to the executable in memory at runtime.
+(d) Library cannot be updated.
+
+**3. (Short Answer - 4 points)**
+
+Explain why function pointers are used in the List ADT when storing data of type `void*`.  What three operations, related to the data, do function pointers enable us to perform?
+
+**4. (Short Answer - 4 points)**
+
+Explain what an iterator is and how it is used to traverse a linked list. Why is an iterator important for a generic list implementation?
+
+**5. (Short Answer - 4 points)**
+
+Describe the difference between a static library and a dynamic library, highlighting one advantage and one disadvantage of each.
+
+---
+
+**Answer Key**
+
+**1.** (c) `void*`
+
+**2.** (c) It is linked to the executable in memory at runtime.
+
+**3.** Function pointers are used because when storing data as `void*`, the compiler doesn't know the actual data type at compile time.  Therefore, we don't know how to properly free, compare, or convert it to a string. The three operations are:
+
+*   Safely freeing the data.
+*   Comparing data values.
+*   Converting the contents of the data to a humanly-readable representation.
+
+**4.** An iterator is an object that provides a way to traverse a data collection (like a linked list) one element at a time, without exposing the underlying implementation details of the collection. It encapsulates the logic for moving through the list.
+
+It is important for a generic list implementation because it allows a user to traverse the list without needing to know how the list is structured (e.g., how nodes are linked).  It provides a consistent, abstract way to access elements regardless of the specific list implementation.
+
+**5.** Static Library:
+Advantage: one self-contained executable, a bit more beginner-friendly.
+Disadvantage: executable can be very large.
+
+Dynamic Library:
+Advantage: flexible - an executable can be linked to different versions of the library, as long as the library API is the same; executable is not bloated.
+Disadvantage: In some applications a single self-contained executable might be more convenient.
