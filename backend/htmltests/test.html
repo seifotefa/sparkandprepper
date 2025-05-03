@@ -177,66 +177,62 @@
         // Wait a moment for Firebase to finish processing
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Construct the Firebase Storage URL correctly
-        const filename = `${mode}s/${generateData.filename}`;
-        const pdfUrl = `https://firebasestorage.googleapis.com/v0/b/sparkandprepper-25830/o/${encodeURIComponent(filename)}?alt=media`;
-        
         featureResult.innerHTML = `<span class="success">✅ ${mode} Generated Successfully!</span>`;
         
-        // Use the same embedding approach that worked with the hardcoded test
+        // Create download button
         featurePdfDisplay.innerHTML = `
-          <div style="margin-bottom: 10px;">
-            <a href="${pdfUrl}" class="pdf-link" target="_blank">
-              📄 Open ${mode} in New Tab
-            </a>
-          </div>
-          <div style="width: 100%; height: 600px;">
-            <object 
-              data="${pdfUrl}" 
-              type="application/pdf" 
-              width="100%" 
-              height="100%"
-              style="min-height: 600px;">
-              <embed 
-                src="${pdfUrl}" 
-                type="application/pdf"
-                width="100%" 
-                height="100%"
-                style="min-height: 600px;">
-              <p>Unable to display PDF. 
-                <a href="${pdfUrl}" target="_blank">Click here to download</a>
-              </p>
-            </object>
+          <div style="text-align: center; padding: 20px;">
+            <button onclick="downloadPDF('${generateData.url}', '${mode}')" style="
+              padding: 15px 30px;
+              font-size: 18px;
+              background-color: #4CAF50;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              margin: 10px;
+            ">
+              📥 Download ${mode} PDF
+            </button>
           </div>
         `;
-
-        // Also try PDF.js rendering as a fallback
-        try {
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-          const loadingTask = pdfjsLib.getDocument(pdfUrl);
-          const pdf = await loadingTask.promise;
-          const page = await pdf.getPage(1);
-          const scale = 1.5;
-          const viewport = page.getViewport({ scale });
-
-          const canvas = document.getElementById('pdfCanvas');
-          const context = canvas.getContext('2d');
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-
-          const renderContext = {
-            canvasContext: context,
-            viewport: viewport
-          };
-          await page.render(renderContext);
-        } catch (error) {
-          console.error('Error rendering PDF:', error);
-          // If PDF.js fails, the object/embed tags above will serve as fallback
-        }
 
       } catch (error) {
         console.error('Error:', error);
         featureResult.innerHTML = `<span class="error">❌ Failed to generate feature: ${error.message}</span>`;
+      }
+    }
+
+    async function downloadPDF(url, mode) {
+      try {
+        // Show downloading status
+        featureResult.innerHTML = '⏳ Downloading PDF...';
+        
+        // Fetch the PDF
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to download PDF');
+        
+        // Get the blob
+        const blob = await response.blob();
+        
+        // Create a temporary link to trigger the download
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `${mode}_${Date.now()}.pdf`; // Give it a unique name
+        
+        // Append to body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        featureResult.innerHTML = `<span class="success">✅ PDF Downloaded Successfully!</span>`;
+      } catch (error) {
+        console.error('Download error:', error);
+        featureResult.innerHTML = `<span class="error">❌ Failed to download PDF: ${error.message}</span>`;
       }
     }
 
@@ -255,7 +251,7 @@
 
       loadingIndicator.style.display = 'block';
       resultBox.innerHTML = '⏳ Processing PDF...';
-      pdfDisplay.innerHTML = ''; // Clear previous PDF display
+      pdfDisplay.innerHTML = '';
 
       try {
         const response = await fetch(`http://localhost:3000/api/upload?mode=${mode}`, {
@@ -272,26 +268,26 @@
         
         if (data.url) {
           pdfDisplay.innerHTML = `
-            <div style="margin-bottom: 10px;">
-              <a href="${data.url}" class="pdf-link" target="_blank">
-                📄 Open Study Guide in New Tab
-              </a>
-            </div>
-            <div style="background: #f0f0f0; padding: 10px;">
-              <embed 
-                src="${data.url}" 
-                type="application/pdf" 
-                width="100%" 
-                height="600px"
-                style="border: 1px solid #ccc;"
-              />
+            <div style="text-align: center; padding: 20px;">
+              <button onclick="downloadPDF('${data.url}', 'study_guide')" style="
+                padding: 15px 30px;
+                font-size: 18px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 10px;
+              ">
+                📥 Download Study Guide PDF
+              </button>
             </div>
           `;
         }
 
       } catch (error) {
         resultBox.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
-        pdfDisplay.innerHTML = ''; // Clear PDF display on error
+        pdfDisplay.innerHTML = '';
       } finally {
         loadingIndicator.style.display = 'none';
       }

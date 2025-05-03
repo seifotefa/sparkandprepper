@@ -19,29 +19,6 @@ const generateRoute = require('./routes/generate');
 // Study guides listing endpoint
 app.get('/api/list-study-guides', async (req, res) => {
   try {
-    console.log('📂 Fetching study guides from Firebase...');
-
-    // List all files in the bucket
-    const [files] = await bucket.getFiles();
-    console.log('All files found:', files.map(f => f.name));
-
-    // Filter for study guide PDFs
-    const studyGuides = files.filter(file =>
-      file.name.includes('study_guide_') &&
-      file.name.endsWith('.pdf') &&
-      !file.name.endsWith('/.keep')
-    );
-
-    console.log('Study guides found:', studyGuides.map(f => f.name));
-
-    if (!studyGuides || studyGuides.length === 0) {
-      console.log('❌ No study guides found');
-      return res.status(404).json({
-        error: 'No study guides found',
-        message: 'Please upload a PDF first to generate a study guide.'
-      });
-    }
-
     // Sort by creation time (newest first)
     const sortedGuides = studyGuides.sort((a, b) => {
       return new Date(b.metadata.timeCreated) - new Date(a.metadata.timeCreated);
@@ -54,30 +31,29 @@ app.get('/api/list-study-guides', async (req, res) => {
       .pop() // Get just the filename
       .replace('.pdf', ''); // Remove .pdf extension
 
-    // Generate the correct Firebase Storage URL
-    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(latestFile.name)}?alt=media`;
+    // Generate the correct Storage URL format
+    const publicUrl = `https://storage.googleapis.com/sparkandprepper-25830.firebasestorage.app/${encodeURIComponent(latestFile.name)}`;
 
     console.log('✅ Latest study guide found:', latestFileName);
     console.log('📄 Public URL:', publicUrl);
 
-    res.json({
+    res.json({ 
       latestFile: latestFileName,
       url: publicUrl,
       allFiles: sortedGuides.map(f => ({
         name: f.name,
-        url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(f.name)}?alt=media`,
+        url: `https://storage.googleapis.com/sparkandprepper-25830.firebasestorage.app/${encodeURIComponent(f.name)}`,
         timeCreated: f.metadata.timeCreated
       }))
     });
   } catch (error) {
     console.error('❌ Error listing study guides:', error);
-    res.status(500).json({
+    res.status(500).json({ 
       error: 'Failed to list study guides',
       details: error.message
     });
   }
 });
-
 // Debug endpoint to list all files in Firebase
 app.get('/api/debug/files', async (req, res) => {
   try {

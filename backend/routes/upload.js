@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const bucket = require('../firebase');
 const { sendToGemini } = require('../services/gemini');
@@ -20,12 +20,12 @@ router.post('/', upload.single('file'), async (req, res) => {
 
   try {
     // Read the PDF content
-    const dataBuffer = fs.readFileSync(filePath);
+    const fileBuffer = await fs.readFile(filePath);
     const mode = req.query.mode || 'study_guide';
     
     // Send to Gemini
     console.log('🧠 Sending to Gemini...', mode);
-    const geminiResponse = await sendToGemini(dataBuffer.toString(), mode);
+    const geminiResponse = await sendToGemini(fileBuffer.toString(), mode);
     const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     // Generate study guide PDF
@@ -52,30 +52,30 @@ router.post('/', upload.single('file'), async (req, res) => {
       destination: destination,
       metadata: {
         contentType: 'application/pdf',
-        cacheControl: 'public, max-age=31536000',
       },
       public: true
     });
 
-    // Make the file publicly accessible
-    const file = bucket.file(destination);
-    await file.makePublic();
-
-    // Get the public URL
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${destination}`;
-    console.log('✅ Study guide available at:', publicUrl);
+    // Make it public and get direct download URL
+    await bucket.file(destination).makePublic();
+    const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${destination}`;
 
     // Clean up local files
-    fs.unlinkSync(filePath);
-    fs.unlinkSync(studyGuidePath);
+    await fs.unlink(filePath);
+    await fs.unlink(studyGuidePath);
 
     return res.json({ 
-      file: `results/${studyGuideFileName}`,
-      url: publicUrl
+      file: studyGuideFileName,
+      downloadUrl: downloadUrl
     });
 
   } catch (err) {
     console.error("🔥 Upload route error:", err);
+    try {
+      await fs.unlink(filePath);
+    } catch (cleanupErr) {
+      console.error("Cleanup error:", cleanupErr);
+    }
     return res.status(500).json({ error: 'Error processing file' });
   }
 });

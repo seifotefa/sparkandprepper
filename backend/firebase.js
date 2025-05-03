@@ -34,25 +34,25 @@
 // // });
 
 
-const { Storage } = require('@google-cloud/storage');
+const admin = require('firebase-admin');
 const path = require('path');
 
-// Initialize storage
-const storage = new Storage({
-  keyFilename: path.join(__dirname, 'firebaseKey.json'),
-  projectId: 'sparkandprepper-25830'
+// Initialize Firebase Admin with service account
+const serviceAccount = require('./firebaseKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: 'sparkandprepper-25830.firebasestorage.app'  // Updated bucket name
 });
 
-// Update with your exact bucket name from the Firebase Console
-const bucketName = 'sparkandprepper-25830.firebasestorage.app';
-const bucket = storage.bucket(bucketName);
+const bucket = admin.storage().bucket();
 
 // Test the connection
 bucket.exists().then(([exists]) => {
   if (exists) {
     console.log('✅ Firebase Storage connected');
   } else {
-    console.error('❌ Bucket does not exist:', bucketName);
+    console.error('❌ Bucket does not exist:', bucket.name);
   }
 }).catch(err => {
   console.error('❌ Firebase Storage error:', err);
