@@ -19,11 +19,28 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Home button logic
+  const handleHomeClick = (e) => {
+    e.preventDefault();
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+
+  // Logout and redirect to landing page
+  const handleLogout = () => {
+    setDropdownOpen(false);
+    logout();
+    navigate('/');
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-md">
       <div className="container-custom">
         <div className="flex justify-between items-center h-20 py-2">
-          <Link to="/" className="flex items-center space-x-3">
+          <a href={user ? "/dashboard" : "/"} onClick={handleHomeClick} className="flex items-center space-x-3 cursor-pointer select-none">
             <img src="/src/assets/logo.png" alt="Logo" className="h-14 w-auto drop-shadow-lg" />
             <div className="flex items-center text-2xl font-extrabold">
               <span className="text-yellow-500">Spark</span>
@@ -31,7 +48,7 @@ const Navbar = () => {
               <span className="text-blue-600 ml-1">Prep</span>
               <span className="text-black">per</span>
             </div>
-          </Link>
+          </a>
 
           <div className="flex-1 flex justify-center">
             {/* Centered space for future nav or just centering */}
@@ -53,10 +70,10 @@ const Navbar = () => {
                   <svg className="w-4 h-4 ml-1 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2 z-50 border">
+                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg py-2 z-50 border flex flex-col gap-1 p-2">
                     <button
-                      onClick={() => { setDropdownOpen(false); logout(); }}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-gray-700 rounded-lg hover:bg-blue-50 transition-colors font-medium"
                     >
                       Logout
                     </button>
