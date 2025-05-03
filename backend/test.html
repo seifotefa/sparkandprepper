@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Backend Test – Spark & Prepper</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    input, button, select {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    #result {
+      white-space: pre-wrap;
+      background: #f0f0f0;
+      padding: 15px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+    #loading {
+      display: none;
+      font-weight: bold;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Backend Test – Upload PDF</h1>
+
+  <form id="uploadForm">
+    <input type="file" id="pdfFile" name="file" accept="application/pdf" required />
+    <br />
+    <label for="mode">Choose Feature:</label>
+    <select id="mode">
+      <option value="study_guide">Study Guide</option>
+      <option value="chat_ai">AI Chat Tutor</option>
+      <option value="practice_exam">Practice Exam</option>
+      <option value="cheatsheet">Cheat Sheet</option>
+      <option value="flashcards">Flashcards</option>
+    </select>
+    <br />
+    <button type="submit">Send to Backend</button>
+  </form>
+
+  <div id="loading">⏳ Processing... please wait</div>
+  <h2>Result:</h2>
+  <div id="result">Waiting for response...</div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const resultBox = document.getElementById('result');
+    const loadingIndicator = document.getElementById('loading');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('pdfFile');
+      const mode = document.getElementById('mode').value;
+
+      if (!fileInput.files.length) {
+        resultBox.textContent = '❌ No file selected.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      resultBox.textContent = '';
+      loadingIndicator.style.display = 'block';
+
+      try {
+        // First request: upload file and get result path
+        const uploadResponse = await fetch(`http://localhost:3000/api/upload?mode=${mode}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok || !uploadResult.file) {
+          throw new Error('Invalid upload response.');
+        }
+
+        // Second request: fetch the result text file
+        const resultResponse = await fetch(`/${uploadResult.file}`);
+        const resultText = await resultResponse.text();
+
+        loadingIndicator.style.display = 'none';
+        resultBox.textContent = resultText;
+      } catch (err) {
+        loadingIndicator.style.display = 'none';
+        resultBox.textContent = '❌ Error: ' + err.message;
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>

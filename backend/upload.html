@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Gemini Upload</title>
+</head>
+<body>
+  <h2>Upload PDF for AI Study Guide</h2>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" name="file" required />
+    <select name="mode">
+      <option value="study_guide">Study Guide</option>
+      <option value="practice_exam">Practice Exam</option>
+      <option value="cheatsheet">Cheat Sheet</option>
+      <option value="flashcards">Flashcards</option>
+      <option value="chat_ai">AI Chat Tutor</option>
+    </select>
+    <button type="submit">Upload</button>
+  </form>
+
+  <pre id="result"></pre>
+
+  <script>
+    document.getElementById('uploadForm').onsubmit = async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      const mode = form.mode.value;
+      const response = await fetch(`http://localhost:3000/api/upload?mode=${mode}`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+    };
+  </script>
+</body>
+</html>
