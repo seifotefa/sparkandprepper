@@ -1,0 +1,55 @@
+## CIS*2750 - Memory and Valgrind Cheat Sheet
+
+**Key Concept: Modifying variables in Functions**
+*   To modify a variable (including pointers) inside a function, you must pass its **address** (a pointer). Otherwise, you're modifying a copy.
+    *   Modifying an `int`: pass `int*`
+    *   Modifying a pointer: pass `int**`
+
+**Formulas:**
+
+*   Allocating memory: `*p = malloc(sizeof(int)*len);` // where p is of type `int**`
+*   Freeing memory: `free(pointer);`
+
+**Definitions:**
+
+*   **Pointer:** A variable that stores a memory address.
+*   **Double Pointer:** A pointer to a pointer (stores the address of a pointer variable).
+*   **Memory Leak:** Failure to `free` dynamically allocated memory.
+*   **Valgrind:** A memory debugging tool (Unix/Linux only).
+*   **NULL:** Typically the integer value of zero
+
+**Bullet Points & Examples**
+
+*   **Modifying an `int`:**
+    *   `main`: `int n = 2; add2(&n);`
+    *   `add2`: `void add2(int* val){ *val = *val + 2; }`
+*   **Modifying a Pointer:**
+    *   `main`: `int* array = NULL; allocate(&array, arrLen);`
+    *   `allocate`: `void allocate(int** p, int len){ *p = malloc(sizeof(int)*len); }`
+*   **`createCard` example:**
+    *   `VCardErrorCode createCard(char* fileName, Card** newCardObject){ Card* tmp = malloc...; ... *newCardObject = tmp;}`
+
+**Valgrind**
+
+*   **Usage:** `valgrind ./myprog` (compile with `-g` flag: `gcc a1.c -o a1 -g`)
+*   **Key Sections:** `HEAP SUMMARY`, `LEAK SUMMARY`, `ERROR SUMMARY`
+*   **Leak Types (in LEAK SUMMARY):**
+    *   `definitely lost`: Memory is leaked. FIX IT.
+    *   `indirectly lost`: Memory is leaked in a pointer-based structure (e.g., a tree). FIX `definitely lost` first.
+    *   `possibly lost`: Memory is potentially leaked. FIX IT.
+    *   `still reachable`: not a leak
+*   **Valgrind can detect memory errors**
+    *   Using an uninitialized variable
+    *   Writing into memory that was not allocated
+
+**Common Tips/Pitfalls:**
+
+*   **Moral of the Story:** "To modify a thing in a function, we must pass its address – otherwise we’re modifying a copy!"
+*   **Memory Management:**
+    *   Every `malloc`/`calloc`/`realloc` needs a corresponding `free`.
+    *   Be aware of functions like `strdup()` that allocate memory you must `free`.
+    *   Use functions like `fopen()` and `fclose()`
+*   **Double Pointers:** Dereferencing can be confusing. Using temporary pointers can improve readability.
+*   **Valgrind Usage:**
+    *   Always compile with the `-g` flag.
+    *   Consult the Valgrind documentation for detailed information.
