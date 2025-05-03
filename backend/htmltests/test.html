@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Backend Test – Upload PDF</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    input, button, select {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    #result, #featureResult {
+      white-space: pre-wrap;
+      background: #f0f0f0;
+      padding: 15px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+    #loading {
+      display: none;
+      font-weight: bold;
+      color: #555;
+    }
+    .pdf-container {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      min-height: 200px;
+    }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+    .pdf-link {
+      display: inline-block;
+      margin: 10px 0;
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+    .pdf-link:hover {
+      background: #0056b3;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+</head>
+<body>
+  <h1>Backend Test – Upload PDF</h1>
+
+  <form id="uploadForm">
+    <input type="file" id="pdfFile" name="file" accept="application/pdf" required />
+    <br />
+    <label for="mode">Choose Feature:</label>
+    <select id="mode">
+      <option value="study_guide">Study Guide</option>
+      <option value="chat_ai">AI Chat Tutor</option>
+      <option value="practice_exam">Practice Exam</option>
+      <option value="cheatsheet">Cheat Sheet</option>
+      <option value="flashcards">Flashcards</option>
+    </select>
+    <br />
+    <button type="submit">Send to Backend</button>
+  </form>
+
+  <div id="loading">⏳ Processing... please wait</div>
+  
+  <h2>Study Guide Result:</h2>
+  <div id="result">Waiting for response...</div>
+  <div id="pdfDisplay" class="pdf-container"></div>
+
+  <h2>Generate From Study Guide:</h2>
+  <select id="featureSelect">
+    <option value="cheatsheet">Cheat Sheet</option>
+    <option value="flashcards">Flashcards</option>
+    <option value="practice_exam">Practice Exam</option>
+  </select>
+  <br />
+  <button onclick="generateFeature()">Generate Feature PDF</button>
+  <div id="featureResult">Waiting for generation...</div>
+  <div id="featurePdfDisplay" class="pdf-container">
+    <div id="pdfViewerContainer" style="background: #f0f0f0; padding: 10px; min-height: 600px;">
+      <canvas id="pdfCanvas"></canvas>
+    </div>
+  </div>
+
+  <h2>Direct PDF Test:</h2>
+  <button onclick="testHardcodedPDF()">Test Hardcoded PDF</button>
+  <div id="hardcodedPdfDisplay" class="pdf-container">
+    <div id="hardcodedPdfViewerContainer" style="background: #f0f0f0; padding: 10px; min-height: 600px;">
+      <canvas id="hardcodedPdfCanvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const resultBox = document.getElementById('result');
+    const loadingIndicator = document.getElementById('loading');
+    const pdfDisplay = document.getElementById('pdfDisplay');
+    const featurePdfDisplay = document.getElementById('featurePdfDisplay');
+    const featureResult = document.getElementById('featureResult');
+
+    async function displayPDF(url) {
+      const loadingTask = pdfjsLib.getDocument(url);
+      try {
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale });
+
+        const canvas = document.getElementById('pdfCanvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        await page.render(renderContext);
+      } catch (error) {
+        console.error('Error rendering PDF:', error);
+      }
+    }
+
+    async function generateFeature() {
+      featureResult.innerHTML = '⏳ Starting generation...';
+      featurePdfDisplay.innerHTML = '';
+
+      try {
+        // Get latest study guide
+        const listResponse = await fetch('http://localhost:3000/api/list-study-guides');
+        if (!listResponse.ok) {
+          throw new Error('Failed to get study guides list');
+        }
+        
+        const listData = await listResponse.json();
+        if (!listData.latestFile) {
+          throw new Error('Please upload and generate a study guide first!');
+        }
+
+        // Generate the feature
+        const mode = document.getElementById('featureSelect').value;
+        featureResult.innerHTML = `⏳ Generating ${mode}...`;
+
+        const generateResponse = await fetch('http://localhost:3000/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            baseFilename: listData.latestFile,
+            mode: mode
+          })
+        });
+
+        if (!generateResponse.ok) {
+          throw new Error('Failed to generate feature');
+        }
+
+        const generateData = await generateResponse.json();
+        
+        // Wait a moment for Firebase to finish processing
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        featureResult.innerHTML = `<span class="success">✅ ${mode} Generated Successfully!</span>`;
+        
+        // Create download button
+        featurePdfDisplay.innerHTML = `
+          <div style="text-align: center; padding: 20px;">
+            <button onclick="downloadPDF('${generateData.url}', '${mode}')" style="
+              padding: 15px 30px;
+              font-size: 18px;
+              background-color: #4CAF50;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              margin: 10px;
+            ">
+              📥 Download ${mode} PDF
+            </button>
+          </div>
+        `;
+
+      } catch (error) {
+        console.error('Error:', error);
+        featureResult.innerHTML = `<span class="error">❌ Failed to generate feature: ${error.message}</span>`;
+      }
+    }
+
+    async function downloadPDF(url, mode) {
+      try {
+        // Show downloading status
+        featureResult.innerHTML = '⏳ Downloading PDF...';
+        
+        // Fetch the PDF
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to download PDF');
+        
+        // Get the blob
+        const blob = await response.blob();
+        
+        // Create a temporary link to trigger the download
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `${mode}_${Date.now()}.pdf`; // Give it a unique name
+        
+        // Append to body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        featureResult.innerHTML = `<span class="success">✅ PDF Downloaded Successfully!</span>`;
+      } catch (error) {
+        console.error('Download error:', error);
+        featureResult.innerHTML = `<span class="error">❌ Failed to download PDF: ${error.message}</span>`;
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('pdfFile');
+      const mode = document.getElementById('mode').value;
+
+      if (!fileInput.files.length) {
+        resultBox.innerHTML = '<span class="error">❌ No file selected.</span>';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      loadingIndicator.style.display = 'block';
+      resultBox.innerHTML = '⏳ Processing PDF...';
+      pdfDisplay.innerHTML = '';
+
+      try {
+        const response = await fetch(`http://localhost:3000/api/upload?mode=${mode}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+        resultBox.innerHTML = `<span class="success">✅ Upload Successful!</span>`;
+        
+        if (data.url) {
+          pdfDisplay.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+              <button onclick="downloadPDF('${data.url}', 'study_guide')" style="
+                padding: 15px 30px;
+                font-size: 18px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 10px;
+              ">
+                📥 Download Study Guide PDF
+              </button>
+            </div>
+          `;
+        }
+
+      } catch (error) {
+        resultBox.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+        pdfDisplay.innerHTML = '';
+      } finally {
+        loadingIndicator.style.display = 'none';
+      }
+    });
+
+    async function testHardcodedPDF() {
+      const hardcodedUrl = 'https://storage.googleapis.com/sparkandprepper-25830.firebasestorage.app/generated/cheatsheets/study_guide_1746299904716-cheatsheet.pdf';
+      const container = document.getElementById('hardcodedPdfDisplay');
+      
+      container.innerHTML = `
+        <div style="margin-bottom: 10px;">
+          <a href="${hardcodedUrl}" class="pdf-link" target="_blank">
+            📄 Open PDF in New Tab
+          </a>
+        </div>
+        <div style="width: 100%; height: 600px;">
+          <object 
+            data="${hardcodedUrl}" 
+            type="application/pdf" 
+            width="100%" 
+            height="100%"
+            style="min-height: 600px;">
+            <embed 
+              src="${hardcodedUrl}" 
+              type="application/pdf"
+              width="100%" 
+              height="100%"
+              style="min-height: 600px;">
+            <p>Unable to display PDF. 
+              <a href="${hardcodedUrl}" target="_blank">Click here to download</a>
+            </p>
+          </object>
+        </div>
+      `;
+
+      // Also try PDF.js rendering
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        const loadingTask = pdfjsLib.getDocument(hardcodedUrl);
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale });
+
+        const canvas = document.getElementById('hardcodedPdfCanvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        await page.render(renderContext);
+      } catch (error) {
+        console.error('Error rendering PDF:', error);
+        // If PDF.js fails, the object/embed tags above will serve as fallback
+      }
+    }
+  </script>
+</body>
+</html>

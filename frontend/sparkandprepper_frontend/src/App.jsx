@@ -1,6 +1,6 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -17,20 +17,13 @@ import MockExam from './components/pages/MockExam';
 import FlashCards from './components/pages/FlashCards';
 import Layout from './components/Layout';
 
-// Wrapper to redirect signed-in users from landing page
-function LandingRedirect() {
-  const { user } = useAuth();
-  if (user) return <Navigate to="/dashboard" replace />;
-  return <Hero />;
-}
-
 const App = () => (
   <AuthProvider>
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 bg-gray-50">
         <Routes>
-          <Route path="/" element={<LandingRedirect />} />
+          <Route path="/" element={<Hero />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/signup" element={<SignupForm />} />
