@@ -10,6 +10,12 @@ import SignupForm from './components/SignupForm';
 import AboutUs from './components/AboutUs';
 import StudyGuideDashboard from './components/StudyGuideDashboard';
 import AllStudyGuides from './components/AllStudyGuides';
+import NewStudyGuide from './components/pages/NewStudyGuide';
+import AskSpark from './components/pages/AskSpark';
+import CheatSheet from './components/pages/CheatSheet';
+import MockExam from './components/pages/MockExam';
+import FlashCards from './components/pages/FlashCards';
+import Layout from './components/Layout';
 
 // Wrapper to redirect signed-in users from landing page
 function LandingRedirect() {
@@ -32,7 +38,9 @@ const App = () => (
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <StudyDashboard />
+                <Layout>
+                  <StudyDashboard />
+                </Layout>
               </ProtectedRoute>
             }
           />
@@ -40,7 +48,9 @@ const App = () => (
             path="/all-study-guides"
             element={
               <ProtectedRoute>
-                <AllStudyGuides />
+                <Layout>
+                  <AllStudyGuides />
+                </Layout>
               </ProtectedRoute>
             }
           />
@@ -48,7 +58,59 @@ const App = () => (
             path="/study/:title"
             element={
               <ProtectedRoute>
-                <StudyGuideDashboard />
+                <Layout>
+                  <StudyGuideDashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/study/:title/ask"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AskSpark />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/study/:title/cheat-sheet"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CheatSheet />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/study/:title/mock-exam"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <MockExam />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/study/:title/flash-cards"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <FlashCards />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/new-study-guide"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <NewStudyGuide />
+                </Layout>
               </ProtectedRoute>
             }
           />

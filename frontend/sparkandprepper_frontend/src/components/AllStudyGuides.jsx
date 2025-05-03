@@ -14,11 +14,18 @@ const allStudies = [
   { title: 'Chemistry', date: 'March 25, 2024' },
 ];
 
+// BackArrowIcon SVG
+const BackArrowIcon = ({ size = 28, color = "#5B6478" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M15 19l-7-7 7-7" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const AllStudyGuides = () => (
   <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 py-8 px-2">
     <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl p-8 md:p-12">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-extrabold text-gray-900">All Study Guides</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold text-gray-900">Your Study Guides</h1>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {allStudies.map((study, idx) => (

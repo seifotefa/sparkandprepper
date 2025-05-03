@@ -1,2 +1,30 @@
 @import "tailwindcss";
 
+:root {
+  --color-spark-yellow: #FFD600;
+  --color-prepper-blue: #2563eb;
+  --color-prepper-blue-light: #eaf3fb;
+  --color-dark: #18181b;
+  --color-gray: #f3f4f6;
+  --color-white: #fff;
+  --color-main-text: #5B6478;
+  font-family: 'Inter', 'Nunito Sans', 'system-ui', Arial, sans-serif;
+}
+
+body {
+  font-family: 'Inter', 'Nunito Sans', 'system-ui', Arial, sans-serif;
+  background: var(--color-prepper-blue-light);
+  color: var(--color-main-text);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', 'Nunito Sans', 'system-ui', Arial, sans-serif;
+  font-weight: 700;
+  color: var(--color-main-text);
+}
+
+button, .btn, input, select, textarea {
+  font-family: 'Inter', 'Nunito Sans', 'system-ui', Arial, sans-serif;
+  color: var(--color-main-text);
+}
+
