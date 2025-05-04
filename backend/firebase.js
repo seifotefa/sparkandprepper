@@ -1,48 +1,19 @@
-// // Import the functions you need from the SDKs you need
-// import { initializeApp } from "firebase/app";
-// import { getAnalytics } from "firebase/analytics";
-// import { getStorage, uploadBytes } from "firebase/storage";
-// // TODO: Add SDKs for Firebase products that you want to use
-// // https://firebase.google.com/docs/web/setup#available-libraries
-
-// // Your web app's Firebase configuration
-// // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-// const firebaseConfig = {
-//   apiKey: "AIzaSyCtzCeVA9rVfrOOMnlLDYmzub9E9rV-7ME",
-//   authDomain: "sparkandprepper.firebaseapp.com",
-//   projectId: "sparkandprepper",
-//   storageBucket: "sparkandprepper.firebasestorage.app",
-//   messagingSenderId: "870954180131",
-//   appId: "1:870954180131:web:c251500924002598115b96",
-//   measurementId: "G-RBMNQ8ZNHY"
-// };
-
-// // Initialize Firebase
-// const app = initializeApp(firebaseConfig);
-// const analytics = getAnalytics(app);
-// const storage = getStorage(app);
-// const storageRef = ref(storage);
-
-
-// const imagesRef = ref(storage, 'images');
-
-// // Create a reference to 'images' folder in Firebase Storage
-// // const imagesRef = ref(storage, 'images/');
-
-// // uploadBytes(imagesRef, file).then((snapshot) => {
-// //   console.log('Uploaded a blob or file!', snapshot);
-// // });
-
-
+require('dotenv').config();
 const admin = require('firebase-admin');
 const path = require('path');
-
-// Initialize Firebase Admin with service account
 const serviceAccount = require('./firebaseKey.json');
 
+if (!process.env.FIREBASE_STORAGE_BUCKET) {
+  console.error('ERROR: FIREBASE_STORAGE_BUCKET is not set in .env file');
+  console.error('Please create a .env file in the backend directory with:');
+  console.error('FIREBASE_STORAGE_BUCKET=gs://sparkandprepper-25830.firebasestorage.app');
+  process.exit(1);
+}
+
+// Initialize Firebase Admin with the correct bucket
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'sparkandprepper-25830.firebasestorage.app'  // Updated bucket name
+  storageBucket: 'sparkandprepper-25830.firebasestorage.app'
 });
 
 const bucket = admin.storage().bucket();
@@ -58,6 +29,5 @@ bucket.exists().then(([exists]) => {
   console.error('❌ Firebase Storage error:', err);
 });
 
-module.exports = bucket;
-
-
+// Export the bucket for use in other files
+module.exports = bucket; 

@@ -1,13 +1,3 @@
-const Redis = require('ioredis');
-const { PDFDocument } = require('pdf-lib');
-const sharp = require('sharp');
-const bucket = require('../firebase');
-const path = require('path');
-const fs = require('fs').promises;
-
-// Initialize Redis client
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-
 class PDFService {
   constructor() {
     this.CACHE_DURATION = 60 * 60; // 1 hour in seconds

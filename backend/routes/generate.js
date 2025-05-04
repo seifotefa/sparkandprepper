@@ -1,94 +1,196 @@
 const express = require('express');
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
-const bucket = require('../firebase');
-const { sendToGemini } = require('../services/gemini');
 const { PDFDocument } = require('pdf-lib');
 const pdfParse = require('pdf-parse');
+const bucket = require('../firebase');
+const { sendToGemini } = require('../services/gemini');
 
 const router = express.Router();
 
+// Ensure tmp directory exists
+const tmpDir = path.join(__dirname, '../tmp');
+fs.mkdir(tmpDir, { recursive: true }).catch(console.error);
+
 router.post('/generate', async (req, res) => {
   const { baseFilename, mode } = req.body;
+  
   if (!baseFilename || !mode) {
-    return res.status(400).json({ error: 'Missing parameters.' });
+    return res.status(400).json({ 
+      success: false,
+      error: 'Missing required parameters: baseFilename and mode' 
+    });
   }
 
-  const fileId = `${baseFilename}-${mode}.pdf`;
-  const tmpDir = path.join(__dirname, '../tmp');
+  const fileId = `${baseFilename}-${mode}-${Date.now()}.pdf`;
+  const tempSourcePath = path.join(tmpDir, `source-${Date.now()}.pdf`);
+  const tempOutputPath = path.join(tmpDir, fileId);
 
   try {
-    // Ensure tmp directory exists
-    if (!fs.existsSync(tmpDir)) {
-      fs.mkdirSync(tmpDir, { recursive: true });
+    console.log(`🔄 Generating ${mode} from ${baseFilename}`);
+
+    // Download source PDF
+    console.log('📥 Downloading source PDF...');
+    const sourceFile = bucket.file(`results/${baseFilename}`);
+    const [exists] = await sourceFile.exists();
+    
+    if (!exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Source file not found'
+      });
     }
 
-    // Get the study guide content
-    const studyGuideFile = bucket.file(`public/results/${baseFilename}.pdf`);
-    const tempStudyGuidePath = path.join(tmpDir, 'temp-study-guide.pdf');
-    
-    await studyGuideFile.download({
-      destination: tempStudyGuidePath
+    await sourceFile.download({
+      destination: tempSourcePath
     });
 
     // Read and parse the PDF
-    const dataBuffer = fs.readFileSync(tempStudyGuidePath);
-    const pdfData = await pdfParse(dataBuffer);
-    const studyText = pdfData.text;
+    console.log('📄 Parsing PDF content...');
+    const sourceBuffer = await fs.readFile(tempSourcePath);
+    const pdfData = await pdfParse(sourceBuffer);
 
-    // Generate new content
-    console.log('🧠 Sending to Gemini [' + mode + ']');
-    const geminiResp = await sendToGemini(studyText, mode);
-    const text = geminiResp?.candidates?.[0]?.content?.parts?.[0]?.text || 'No content';
+    // Generate new content with Gemini
+    console.log(`🧠 Generating ${mode} content...`);
+    const generatedContent = await sendToGemini(pdfData.text, mode);
 
     // Create new PDF
+    console.log('📝 Creating new PDF...');
     const pdfDoc = await PDFDocument.create();
-    let currentPage = pdfDoc.addPage();
+    let currentPage = pdfDoc.addPage([612, 792]); // Standard US Letter size
     const fontSize = 12;
-    const textLines = text.split('\n');
-    const yStart = 750;
-    let y = yStart;
+    const margin = 50;
+    const lineHeight = 20;
+    const textWidth = 512; // Page width minus margins
+    let y = 792 - margin; // Start from top margin
+
+    // Add title
+    const title = mode.replace(/_/g, ' ').toUpperCase();
+    currentPage.drawText(title, {
+      x: margin,
+      y: y,
+      size: 20,
+      font: await pdfDoc.embedFont('Helvetica-Bold')
+    });
+    y -= lineHeight * 2;
+
+    // Add content
+    const textLines = generatedContent.split('\n');
+    const regularFont = await pdfDoc.embedFont('Helvetica');
 
     for (const line of textLines) {
-      if (y < 50) {
-        currentPage = pdfDoc.addPage();
-        y = yStart;
+      if (y < margin + lineHeight) {
+        currentPage = pdfDoc.addPage([612, 792]);
+        y = 792 - margin;
       }
-      currentPage.drawText(line, { x: 50, y: y -= 20, size: fontSize });
+
+      currentPage.drawText(line.trim(), {
+        x: margin,
+        y,
+        size: fontSize,
+        font: regularFont,
+        maxWidth: textWidth,
+        lineHeight
+      });
+      y -= lineHeight;
     }
 
-    // Save and upload new PDF
+    // Save PDF
     const pdfBytes = await pdfDoc.save();
-    const tmpPdfPath = path.join(tmpDir, fileId);
-    fs.writeFileSync(tmpPdfPath, pdfBytes);
+    await fs.writeFile(tempOutputPath, pdfBytes);
 
-    // Upload to Firebase with public access
-    const destination = `generated/${mode}s/${fileId}`;
-    await bucket.upload(tmpPdfPath, {
-      destination: destination,
+    // Upload to Firebase
+    console.log('☁️ Uploading to Firebase...');
+    const destination = `generated/${mode}/${fileId}`;
+    await bucket.upload(tempOutputPath, {
+      destination,
       metadata: {
         contentType: 'application/pdf',
         cacheControl: 'public, max-age=31536000',
-      },
-      public: true
+        metadata: {
+          sourceFile: baseFilename,
+          mode,
+          timestamp: Date.now()
+        }
+      }
     });
 
-    // Make the file publicly accessible
-    const file = bucket.file(destination);
-    await file.makePublic();
+    // Make file public
+    const generatedFile = bucket.file(destination);
+    await generatedFile.makePublic();
 
-    // Get the public URL
+    // Get public URL
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${destination}`;
-    console.log('✅ Feature generated at:', publicUrl);
+    console.log('✅ Generated content available at:', publicUrl);
 
     // Clean up temp files
-    fs.unlinkSync(tmpPdfPath);
-    fs.unlinkSync(tempStudyGuidePath);
+    await Promise.all([
+      fs.unlink(tempSourcePath),
+      fs.unlink(tempOutputPath)
+    ]);
 
-    return res.json({ url: publicUrl });
-  } catch (err) {
-    console.error("❌ Error in generate route:", err);
-    return res.status(500).json({ error: 'Failed to generate PDF.' });
+    return res.json({
+      success: true,
+      mode,
+      file: destination,
+      url: publicUrl,
+      sourceFile: baseFilename,
+      timestamp: Date.now()
+    });
+
+  } catch (error) {
+    console.error('❌ Generate route error:', error);
+    
+    // Clean up temp files in case of error
+    try {
+      await Promise.all([
+        fs.unlink(tempSourcePath).catch(() => {}),
+        fs.unlink(tempOutputPath).catch(() => {})
+      ]);
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate content',
+      details: error.message
+    });
+  }
+});
+
+// Get generation status
+router.get('/status/:fileId', async (req, res) => {
+  try {
+    const file = bucket.file(`generated/${req.params.fileId}`);
+    const [exists] = await file.exists();
+
+    if (!exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Generated file not found'
+      });
+    }
+
+    const [metadata] = await file.getMetadata();
+    const [url] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 1000 * 60 * 60 // 1 hour
+    });
+
+    res.json({
+      success: true,
+      url,
+      metadata
+    });
+
+  } catch (error) {
+    console.error('Error checking generation status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check generation status',
+      details: error.message
+    });
   }
 });
 

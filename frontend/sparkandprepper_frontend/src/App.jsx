@@ -1,12 +1,9 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import StudyDashboard from './components/StudyDashboard';
-import LoginForm from './components/LoginForm';
-import SignupForm from './components/SignupForm';
 import AboutUs from './components/AboutUs';
 import StudyGuideDashboard from './components/StudyGuideDashboard';
 import AllStudyGuides from './components/AllStudyGuides';
@@ -16,101 +13,31 @@ import CheatSheet from './components/pages/CheatSheet';
 import MockExam from './components/pages/MockExam';
 import FlashCards from './components/pages/FlashCards';
 import Layout from './components/Layout';
+import ViewStudyGuide from './components/pages/ViewStudyGuide';
+import LoginForm from './components/LoginForm';
+import SignupForm from './components/SignupForm';
 
 const App = () => (
-  <AuthProvider>
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 bg-gray-50">
-        <Routes>
-          <Route path="/" element={<Hero />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/signup" element={<SignupForm />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <StudyDashboard />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/all-study-guides"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <AllStudyGuides />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/study/:title"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <StudyGuideDashboard />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/study/:title/ask"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <AskSpark />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/study/:title/cheat-sheet"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <CheatSheet />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/study/:title/mock-exam"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <MockExam />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/study/:title/flash-cards"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <FlashCards />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/new-study-guide"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <NewStudyGuide />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </main>
-    </div>
-  </AuthProvider>
+  <div className="min-h-screen flex flex-col">
+    <Navbar />
+    <main className="flex-1 bg-gray-50">
+      <Routes>
+        <Route path="/" element={<Hero />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/login" element={<LoginForm />} />
+        <Route path="/signup" element={<SignupForm />} />
+        <Route path="/dashboard" element={<Layout><StudyDashboard /></Layout>} />
+        <Route path="/all-study-guides" element={<Layout><AllStudyGuides /></Layout>} />
+        <Route path="/study/:id" element={<Layout><ViewStudyGuide /></Layout>} />
+        <Route path="/study" element={<Layout><StudyGuideDashboard /></Layout>} />
+        <Route path="/study/ask" element={<Layout><AskSpark /></Layout>} />
+        <Route path="/study/cheat-sheet" element={<Layout><CheatSheet /></Layout>} />
+        <Route path="/study/mock-exam" element={<Layout><MockExam /></Layout>} />
+        <Route path="/study/flash-cards" element={<Layout><FlashCards /></Layout>} />
+        <Route path="/new-study-guide" element={<Layout><NewStudyGuide /></Layout>} />
+      </Routes>
+    </main>
+  </div>
 );
 
 export default App;
