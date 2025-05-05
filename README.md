@@ -10,8 +10,7 @@
 
 Whether you're preparing for finals or just want to keep up with your coursework, Spark and Prepper helps you study smarter, not harder.
 
-Study Guide Dashboard
-![studyguide](https://github.com/user-attachments/assets/5a9cd11c-c80a-4a5f-ba47-d3ef0ca486ce)
+
 
 ## ✨ Features
 
@@ -21,6 +20,7 @@ Study Guide Dashboard
 - 🎓 Practice with **Mock Exams**
 - 💡 Create custom **Cheat Sheets**
 - 💬 Chat with an AI Study Companion (Chatbot)
+ ![studyguide](https://github.com/user-attachments/assets/5a9cd11c-c80a-4a5f-ba47-d3ef0ca486ce)
 
 ## 🛠️ Built With
 
