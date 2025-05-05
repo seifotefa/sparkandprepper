@@ -1,12 +1,17 @@
 
 # Spark and Prepper 📚✨  
 *Shake Up Your Study Routine with AI-Powered Tools*
+![image](https://github.com/user-attachments/assets/712924db-bdfb-44d9-8df7-b27efa93baa5)
+
 
 ## 🚀 About the Project
 
 **Spark and Prepper** is an AI-powered web app designed to make studying more efficient and interactive. Upload your course materials — like lecture notes, syllabi, or slides — and let our system turn them into structured study guides, quizzes, flashcards, mock exams, and cheat sheets powered by Google's Gemini API.
 
 Whether you're preparing for finals or just want to keep up with your coursework, Spark and Prepper helps you study smarter, not harder.
+
+Study Guide Dashboard
+![studyguide](https://github.com/user-attachments/assets/5a9cd11c-c80a-4a5f-ba47-d3ef0ca486ce)
 
 ## ✨ Features
 
