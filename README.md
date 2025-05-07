@@ -19,7 +19,7 @@ Whether you're preparing for finals or just want to keep up with your coursework
 - 📝 Auto-generated **Flashcards**
 - 🎓 Practice with **Mock Exams**
 - 💡 Create custom **Cheat Sheets**
-- 💬 Chat with an AI Study Companion (Chatbot)
+- 💬 Chat with an **AI Tutor** (Chatbot)
  ![studyguide](https://github.com/user-attachments/assets/5a9cd11c-c80a-4a5f-ba47-d3ef0ca486ce)
 
 ## 🛠️ Built With
@@ -39,7 +39,7 @@ Whether you're preparing for finals or just want to keep up with your coursework
   - [Gemini API](https://developers.google.com/)
 
 ## 🌐 Check Out More
--[Devpost](https://devpost.com/software/sparkandprepper)
+  - [Devpost](https://devpost.com/software/sparkandprepper)
 
 
 
